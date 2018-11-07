@@ -46,7 +46,6 @@ button.addEventListener('click', function() {
     })
   })  
 
-
   // Repeat the exercise with a PUT request you send to https://httpbin.org/put
   // Make sure to set the appropriate headers (as shown in the lecture)
   // Send any data of your choice, make sure to access it correctly when outputting it
