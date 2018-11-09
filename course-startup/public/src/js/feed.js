@@ -4,7 +4,10 @@ var closeCreatePostModalButton = document.querySelector('#close-create-post-moda
 var sharedMomentsArea = document.querySelector('#shared-moments');
 
 function openCreatePostModal() {
-  createPostArea.style.display = 'block';
+  // createPostArea.style.display = 'block';
+  // setTimeout(function() {
+    createPostArea.style.transform = 'translateY(0)'
+  // }, 1);  
   if (deferredPrompt) {
     deferredPrompt.prompt();
 
@@ -31,7 +34,8 @@ function openCreatePostModal() {
 }
 
 function closeCreatePostModal() {
-  createPostArea.style.display = 'none';
+  createPostArea.style.transform = 'translateY(100vh)';
+  // createPostArea.style.display = 'none';  
 }
 
 shareImageButton.addEventListener('click', openCreatePostModal);
@@ -61,8 +65,7 @@ function createCard(data) {
   var cardTitle = document.createElement('div');
   cardTitle.className = 'mdl-card__title';
   cardTitle.style.backgroundImage = `url("${data.image}")`;
-  cardTitle.style.backgroundSize = 'cover';
-  cardTitle.style.height = '180px';
+  cardTitle.style.backgroundSize = 'cover';  
   cardWrapper.appendChild(cardTitle);
   var cardTitleTextElement = document.createElement('h2');
   cardTitleTextElement.style.color = 'black'
