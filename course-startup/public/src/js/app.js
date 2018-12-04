@@ -1,4 +1,5 @@
 var deferredPromt;
+var enableNotificationssButtons = document.querySelectorAll('.enable-notifications');
 
 // Used to check if the browser
 // doesn't have promise implemented
@@ -27,5 +28,28 @@ window.addEventListener('beforeinstallprompt', function(event) {
    return false;
   });
 
+const displayConfirmNotification = () => {
+    new Notification('Successfully subscribed! :)');
+}
 
-  
+const askForNotificationPermission = () => { 
+    console.log('asking for user permission...');
+    Notification.requestPermission((result) => {
+        console.log('User choice', result);
+        if (result !== 'granted') {
+            console.log('No notification permission granted!');
+        } else {            
+            //hide the button
+        }
+    });
+}
+
+
+if ('Notification' in window) {
+    // check if there is support for notifications in the browser    
+    for (const iterator of enableNotificationssButtons) {        
+        iterator.style.display ='inline-block';
+        iterator.addEventListener('click', askForNotificationPermission); 
+    }
+        
+}
