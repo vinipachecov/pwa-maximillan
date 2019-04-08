@@ -67,8 +67,7 @@ self.addEventListener('activate', function(event) {
 
 // cache then network
 self.addEventListener('fetch', async function(event) {  
-  const url = 'https://httpbin.org/get';
-  const staticAssets = []
+  const url = 'https://httpbin.org/get';  
 
   // only uses cache then network in this url
   if (event.request.url.indexOf(url) > -1) {

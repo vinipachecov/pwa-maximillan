@@ -1,29 +1,26 @@
-var defferedPrompt;
+let defferedPrompt;
 
-if(!window.Promise) {
+if (!window.Promise) {
   window.Promise = Promise;
 }
 
 
-async function initializeServiceWorker() { 
+async function initializeServiceWorker() {
   if ('serviceWorker' in navigator) {
     try {
-      await navigator.serviceWorker.register('/sw.js')    
-      console.log('Service worker registered!');          
+      await navigator.serviceWorker.register('/sw.js');
+      console.log('Service worker registered!');
     } catch (error) {
-      console.log('Error registering service worker, ', error);     
-    }  
+      console.log('Error registering service worker, ', error);
+    }
   }
-  window.addEventListener('beforeinstallprompt', function(event) {
+  window.addEventListener('beforeinstallprompt', (event) => {
     console.log('beforeinstallprompt fired');
     event.preventDefault();
-    deferredPrompt = event;
+    defferedPrompt = event;
     return false;
   });
 }
 
 
 initializeServiceWorker();
-
-
-

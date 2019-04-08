@@ -248,4 +248,3 @@ self.addEventListener('fetch', async function(event) {
 
 ### cache then network
 Cache then network is a great strategy when considering poor connections because it can avoid the time required for a request to fail and also provides the resource FAST.
- 
