@@ -66,7 +66,7 @@ The null param in respondWith will crash the app, and we can replace it 'fetch(e
 
 ## Caching
 
-Remember that we need to cache static content and dynamic content(generated in runtime for example).
+The caching API in javascript is meant to cache files, like very common assets, not objects. Mostly what we will cache are css files, html pages, javascript modules, images and other usefull files for our user experience.
 The cache api in javascript has an URL as a key and a response object as the corresponding value. This means we can cache api requests and not only resources in our folders. 
 
 ## Openning the cache
@@ -248,3 +248,156 @@ self.addEventListener('fetch', async function(event) {
 
 ### cache then network
 Cache then network is a great strategy when considering poor connections because it can avoid the time required for a request to fail and also provides the resource FAST.
+To to this, differently then the other approaches we have to first
+try to get the dinamic stuff from the page itself, so the frontend(not the SW) will try to get resource from the cache too.
+Then comes the service work to attempt to get stuff from the network and save it on the cache if the response succeded.
+
+
+## Indexed DB
+Another API provided in the web environment is the Indexed Db. It is a object database to store json data. Usually we use a top layer of functions like the idb.js file in the project folder to access it.
+Now, Indexed DB is a transactional database which means that it will only store transcations if none of the writes fail. In other words, if any part of a transaction fails, the database will rollback to the previous state because of its concerns with data integrity.
+
+To open the database we have to follow some steps:
+
+* Import the database:
+```
+self.importScripts('/src/js/idb.js');
+```
+* Open a database store
+```
+let dbPromise = idb.open('post-store',1, db => {
+  if (!db.objectStoreNames.contains('posts')) {
+    db.createObjectStore('posts', {
+      keyPath: 'id'
+    })
+  }  
+});
+```
+Consider keyPath as the parameter which the db will index your objects(important for search and sorting)
+
+* Store data in our store
+```
+ event.respondWith(fetch(event.request)
+    .then(async response => {
+      const clonedRes = response.clone();
+      const data = await clonedRes.json();        
+      for (const key in data) {    
+        console.log(data[key]);
+        const db = await dbPromise;
+        const tx = db.transaction('posts', 'readwrite');
+        const store = tx.objectStore('posts');
+        store.put(data[key]);
+        await tx.complete;
+      }
+      return response;
+    }))        
+```
+Here we are using our firebase syntax, which the response comes with a object of objects, where in every key of the response we have an example of our data.
+So inside the loop:
+
+* Start the db for a transaction
+* create a transaction tx with that instance
+* create access to the store with store variable
+* set the data inside the store with the put method
+* finish the transaction to update the data
+
+
+In the utility.js file we have implemented the initialization and some methods to help us using the indexed db in a more modularized way:
+
+* Basic code to Initialize a store
+
+```
+/**
+ * Initialize our 'posts' store
+ */
+let dbPromise = idb.open('post-store',1, db => {
+  if (!db.objectStoreNames.contains('posts')) {
+    db.createObjectStore('posts', {
+      keyPath: 'id'
+    })
+  }  
+});
+```
+
+* Write data to a store
+```
+/**
+ * Writes data to the store 'posts' 
+ * @param {*} data 
+ */
+async function writeData(data) {
+  try {
+    console.log('wrinting data...')
+    const db = await dbPromise;
+    const tx = db.transaction('posts', 'readwrite');
+    const store = tx.objectStore('posts');
+    store.put(data);
+    await tx.complete;    
+  } catch (error) {
+    console.log('[writeData] error writing data ', data);    
+  }  
+}
+```
+
+* Read all data inside a store
+```
+/**
+ * Reads all data from the store param st.
+ * @param {*} st 
+ */
+async function readAllData(st) {
+  try {
+    const db = await dbPromise;
+    const tx = db.transaction('posts', 'readonly');
+    const store = tx.objectStore(st);
+    return store.getAll();    
+  } catch (error) {
+    console.log('[readAllData] Error reading data', st);
+  }  
+}
+```
+
+* Clear all data inside a store
+
+```
+/**
+ * Deletes all data from the store st
+ * @param {*} st 
+ */
+async function clearAllData(st) {
+  try {
+    const db = await dbPromise;
+    const tx = db.transaction(st, 'readwrite');
+    const store = tx.objectStore(st);
+    store.clear();
+    await tx.complete;    
+  } catch (error) {
+    console.log('[clearAllData] Erro clearing data from indexedDB');
+  }  
+}
+```
+
+* Delete a specific item from a store by Id
+
+```
+/**
+ * 
+ * @param {*} st  Db store to be manipulated
+ * @param {*} id  key of the data to be deleted
+ */
+async function deleteItemFromData(st, id) {
+  try {
+    const db = await dbPromise;
+    const tx = db.transaction(st, 'readwrite');
+    const store = tx.objectStore(st);
+    store.delete(id);  
+    await tx.complete();    
+    console.log('item deleted', id);
+  } catch (error) {
+    console.log('[deleteItemFromData] error deleting item by id...');    
+  }  
+}
+```
+
+#### PS
+When dealing with indexedDB sometimes only reloading might not be enough to refresh the service worker and activate changes. If this starts to happen and the indexedDB does not change at all try openning a new tab and you should be fine.

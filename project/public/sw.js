@@ -1,5 +1,7 @@
-const DYNAMIC_CACHE = 'dynamic-v3'
-const STATIC_CACHE = 'static-v2'
+self.importScripts('/src/js/idb.js');
+self.importScripts('/src/js/utility.js');
+const DYNAMIC_CACHE = 'dynamic-v5'
+const STATIC_CACHE = 'static-v5'
 const STATIC_FILES = [ '/',
 '/offline.html',
 './index.html',
@@ -11,9 +13,23 @@ const STATIC_FILES = [ '/',
 '/src/css/app.css',
 '/src/css/feed.css',   
 '/src/images/main-image.jpg',
+'/src/js/idb.js',
 'https://fonts.googleapis.com/css?family=Roboto:400,700',
 'https://fonts.googleapis.com/icon?family=Material+Icons',
 'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css']
+
+
+// Limit the ammount of items in the cache
+// async function trimCache(cacheName, maxItems) {
+//   const cache = await caches.open(cacheName);
+//   const cacheKeys = await cache.keys();
+//   if (cacheKeys.length > maxItems) {
+//     await cache.delete(cacheKeys[0]);
+//     await trimCache(cacheName, maxItems);
+//   }
+// }
+
+
 self.addEventListener('install', function(event) {
   const preCache = async () => {
     const cache = await caches.open(STATIC_CACHE)    
@@ -65,19 +81,42 @@ self.addEventListener('activate', function(event) {
 //   })) 
 // })
 
+function isInArray(string, array) {
+  var cachePath;
+  if (string.indexOf(self.origin) === 0) { // request targets domain where we serve the page from (i.e. NOT a CDN)    
+    cachePath = string.substring(self.origin.length); // take the part of the URL AFTER the domain (e.g. after localhost:8080)
+  } else {
+    cachePath = string; // store the full request (for CDNs)
+  }
+  return array.indexOf(cachePath) > -1;
+}
+
+
 // cache then network
 self.addEventListener('fetch', async function(event) {  
-  const url = 'https://httpbin.org/get';  
+  const url = 'https://pwagram-68ff9.firebaseio.com/posts.json';  
 
   // only uses cache then network in this url
-  if (event.request.url.indexOf(url) > -1) {
-    event.respondWith(new Promise(async (resolve, reject)=> {        
-        const dinamicCache = await caches.open(DYNAMIC_CACHE);
-        const response = await fetch(event.request);
-        dinamicCache.put(event.request.url, response.clone());
-        resolve(response);      
-    })) 
-  } else if(new RegExp('\\b' + STATIC_FILES.join('\\b|\\b') + '\\b').test(event.request.url)) {
+  if (event.request.url.indexOf(url) > -1) {    
+    // event.respondWith(fetch(event.request)
+    // .then(async response => {      
+    //   const data = await response.json();
+    //   console.log(data);
+    //   return data;
+    // })) 
+    event.respondWith(fetch(event.request)
+    .then(async response => {
+      const clonedRes = response.clone();
+      const data = await clonedRes.json();        
+      await clearAllData('posts');
+      for (const key in data) {    
+        await writeData(data[key])               
+      }
+      return response;
+    })
+    .catch(err => console.log(err))            
+    )    
+  } else if(isInArray(event.request.url, STATIC_FILES)) {
     // cache only strategy
     event.respondWith(caches.match(event.request))
   }
@@ -86,20 +125,24 @@ self.addEventListener('fetch', async function(event) {
       event.respondWith(new Promise(async (resolve, reject)=> {  
         try {
           const response = await caches.match(event.request);
-          if (response) {
-            console.log('tem');
+          if (response) {            
             resolve(response);
-          } else {
-            console.log('não tem');
+          } else {            
             const serverResponse = await fetch(event.request);
             const dynamicCache = await caches.open(DYNAMIC_CACHE);
+            // trimCache(DYNAMIC_CACHE, 3)
             dynamicCache.put(event.request.url, serverResponse.clone());
             resolve(serverResponse);
           }          
         } catch (error) {
           // offline fallback
           const staticCache = await caches.open(STATIC_CACHE);
-          if (event.request.url.indexOf('/help')) {
+          //  Lead to a non flexible code
+          // as more resources might be needed to be checked
+          // if (event.request.url.indexOf('/help')) {
+          //   resolve(staticCache.match('/offline.html'));
+          // }          
+          if (event.request.headers.get('accept').includes('text/html')) {            
             resolve(staticCache.match('/offline.html'));
           }          
         }      

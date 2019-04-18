@@ -1,3 +1,4 @@
+
 var shareImageButton = document.querySelector('#share-image-button');
 var createPostArea = document.querySelector('#create-post');
 var closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
@@ -21,6 +22,14 @@ async function openCreatePostModal() {
 
     deferredPrompt = null;
   }
+
+  // if ('serviceWorker' in navigator) {
+  //   const sws = await navigator.serviceWorker.getRegistrations();
+  //   for (const sw of sws) {
+  //     console.log('test');
+  //     await sw.unregister();      
+  //   }
+  // }
 }
 
 function closeCreatePostModal() {
@@ -46,23 +55,23 @@ function clearCard() {
   }  
 }
 
-function createCard() {
+function createCard(data) {
   var cardWrapper = document.createElement('div');
   cardWrapper.className = 'shared-moment-card mdl-card mdl-shadow--2dp';
   var cardTitle = document.createElement('div');
   cardTitle.className = 'mdl-card__title';
-  cardTitle.style.backgroundImage = 'url("/src/images/sf-boat.jpg")';
+  cardTitle.style.backgroundImage = `url("${data.image}")`;
   cardTitle.style.backgroundSize = 'cover';
   cardTitle.style.height = '180px';
   cardWrapper.appendChild(cardTitle);
   var cardTitleTextElement = document.createElement('h2');
   cardTitleTextElement.style.color = 'white';
   cardTitleTextElement.className = 'mdl-card__title-text';
-  cardTitleTextElement.textContent = 'San Francisco Trip';
+  cardTitleTextElement.textContent = data.title;
   cardTitle.appendChild(cardTitleTextElement);
   var cardSupportingText = document.createElement('div');
   cardSupportingText.className = 'mdl-card__supporting-text';
-  cardSupportingText.textContent = 'In San Francisco';
+  cardSupportingText.textContent = data.location;
   cardSupportingText.style.textAlign = 'center';
   // var cardSaveButton = document.createElement('button');
   // cardSaveButton.textContent = 'save';
@@ -74,30 +83,42 @@ function createCard() {
   sharedMomentsArea.appendChild(cardWrapper);
 }
 
-const url = 'https://httpbin.org/get';
+function updateUI(data) {
+  console.log('updating data', data);
+  for (const imageData  of data) {
+    createCard(imageData)    
+  }
+}
+
+const url = 'https://pwagram-68ff9.firebaseio.com/posts.json';
 let networkDataReceived = false;
 
 async function initPosts() {
-  const response = await fetch(url);
-  networkDataReceived = true;
-  const data = await response.json();
-  console.log('from the web', data);
-  clearCard();
-  createCard()
+  try {
+    const response = await fetch(url);
+    networkDataReceived = true;
+    const data = await response.json();
+    console.log('from the web', data);
+    const dataArray = [];
+    for (const key in data) {    
+      dataArray.push(data[key]);    
+    }
+    clearCard();
+    updateUI(dataArray);    
+  } catch (error) {
+    console.log(error);    
+  }  
 }
 initPosts();
 
-const createSecondCard = async () => {
-  if ('caches' in window) {
-    const response = await caches.match(url);  
-    if (response) {
-      const data = await response.json();
-      if(!networkDataReceived) {
-        console.log(data);
-        clearCard()
-        createCard()        
-      }    
-    }      
+const createSecondCard = async () => {  
+  if ('indexedDB' in window) {
+    const data = await readAllData('posts');    
+    // array of all values
+    if(!networkDataReceived) {
+      console.log('data = ', data);
+      updateUI(data);
+    }    
   }    
 }
 createSecondCard();

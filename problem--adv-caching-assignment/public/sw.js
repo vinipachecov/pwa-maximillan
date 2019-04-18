@@ -88,8 +88,7 @@ self.addEventListener('activate', function(event) {
 //   );
 // });
 
-
-//cache then network
+//current stategy
 self.addEventListener('fetch', function(event) {
   event.respondWith(new Promise(async (resolve, reject) => {
     const url = 'https://httpbin.org/ip';        
